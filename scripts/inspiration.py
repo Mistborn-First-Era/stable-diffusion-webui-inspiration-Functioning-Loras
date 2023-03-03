@@ -18,7 +18,7 @@ inspiration_system_path = os.path.join(inspiration_dir, "system")
 
 class Script(scripts.Script):
     def title(self):
-        return "Create inspiration images"
+        return "Create inspiration images (loras work)"
 
     def show(self, is_img2img):
         return True
@@ -50,18 +50,25 @@ class Script(scripts.Script):
                     continue
                 double_quotes_match = re.search('^".+"', line)
                 if double_quotes_match:
-                    name = double_quotes_match.group()[1:len(double_quotes_match.group()) - 1]
+                    fixed_name = double_quotes_match.group()[1:len(double_quotes_match.group()) - 1]
                 else:
                     name = line.split(",")[0]
-                line = f.readline()
-                artist_path = os.path.join(path, name)
+                    fixed_name = ""
+                    for letter in name:
+                        bad_symbol_list = ["<", ">", "?", "\\", "*", ":", '"', "'", "/", "|", "?"]
+                        if letter in bad_symbol_list:
+                            fixed_name += "_"
+                        else:
+                            fixed_name += letter
+                artist_path = os.path.join(path, fixed_name)
                 if not os.path.exists(artist_path):
                     os.mkdir(artist_path)
                 if len(os.listdir(artist_path)) >= opts.inspiration_max_samples:
-                    print("Limit of " + str(opts.inspiration_max_samples) + " of '" + name + "' in " + tp + " is reached. Limit can be changed in the settings.")
+                    print("Limit of " + str(opts.inspiration_max_samples) + " of '" + fixed_name + "' in " + tp + " is reached. Limit can be changed in the settings.")
                     continue
-                p.prompt = re.sub(prompt_placeholder, name, original_prompt)
-                print(p.prompt)
+                p.prompt = re.sub(prompt_placeholder, line, original_prompt)
+                print("folder name is", fixed_name, "using", p.prompt, "as the prompt.")
+                line = f.readline()
                 processed = processing.process_images(p)
                 for img in processed.images:
                     i = 0
@@ -219,7 +226,7 @@ def on_ui_tabs():
             gr.HTML("""
                 <div align='center' width="50%"><h2>To activate inspiration function, you need get "inspiration" images first. </h2><br>
                 You can create these images by run "Create inspiration images" script in txt2img page, <br> you can get the artists or art styles list from here<br>
-                <a href="https://github.com/pharmapsychotic/clip-interrogator/tree/main/clip_interrogator/data">https://github.com/pharmapsychotic/clip-interrogator/tree/main/clip_interrogator/data</a><br>
+                <a href="https://github.com/pharmapsychotic/clip-interrogator/tree/main/data">https://github.com/pharmapsychotic/clip-interrogator/tree/main/data</a><br>
                 download these files, and select these files in the "Create inspiration images" script UI<br>
                 There about 6000 artists and art styles in these files. <br>This takes server hours depending on your GPU type and how many pictures  you generate for each artist/style
                 <br>I suggest at least four images for each<br><br><br>
